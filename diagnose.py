@@ -57,14 +57,30 @@ def get_interesting_adjs(doc):
     adjectives_dictionary = get_adjectives(doc)
     return adjectives_dictionary[JJ]
 
-def get_most_common(list_of_words):
+# TODO: fix so that you can ask for both at_least_n and top_n
+def get_most_common(list_of_words, at_least_n=None, top_n=None):
     uniquely = {}
     for word in list_of_words:
         if word.string not in uniquely:
             uniquely[word.string] = 1
         else:
             uniquely[word.string] += 1
-    return sorted(uniquely.items(), key=lambda x:x[1])
+    if at_least_n:
+        n_or_mores = {}
+        for word in uniquely:
+            if uniquely[word] >= at_least_n:
+                n_or_mores[word] = uniquely[word]
+        return sorted(n_or_mores.items(), key=lambda x:x[1])
+    elif top_n:
+        top_n_words = {}
+        while top_n > 0:
+            most_common = max(uniquely, key = lambda key: uniquely[key])
+            top_n_words[most_common] = uniquely[most_common]
+            del uniquely[most_common]
+            top_n -= 1
+        return sorted(top_n_words.items(), key=lambda x:x[1])
+    else:
+        return sorted(uniquely.items(), key=lambda x:x[1])
 
 def get_avg_length(list_of_words):
     return float(sum(map(len, list_of_words))) / len(list_of_words)
@@ -72,16 +88,32 @@ def get_avg_length(list_of_words):
 def print_tags(word):
     print (word, word.tag_, word.tag, word.pos_, word.pos)
 
-def print_all_heuristics(doc):
+def print_all_heuristics(doc, title):
+    print title.upper()
     print 'avg length: all words:', get_avg_length(doc)
     print 'avg length: all single word proper nouns:', \
                             get_avg_length(get_proper_nouns(doc))
     print 'avg length: descriptive adjectives:', \
-                            get_avg_length(get_interesting_adjectives(doc))
+                            get_avg_length(get_interesting_adjs(doc))
+    print 'adjs used more than 30x:', \
+                            get_most_common(get_interesting_adjs(doc),
+                                            at_least_n=30)
+    print
 
 if __name__ == '__main__':
     nlp = spacy.load('en')
+    f = open('fragile-soft-machines.txt')
+    doc = nlp(unicode(f.read()))
+    print_all_heuristics(doc, "fragile soft machines")
+
+    f = open('LordoftheRings1-FellowshipRing.txt')
+    doc = nlp(unicode(f.read()))
+    print_all_heuristics(doc, "the fellowship of the ring")
+
     f = open('HarryPotter3-PrisonerAzkaban.txt')
     doc = nlp(unicode(f.read()))
-    common_harry_p = get_most_common(get_interesting_adjs(doc))
-    print common_harry_p
+    print_all_heuristics(doc, "harry potter and the prisoner of azkaban")
+
+    f = open('what-light-ch1,20.txt')
+    doc = nlp(unicode(f.read()))
+    print_all_heuristics(doc, "what light we find")
